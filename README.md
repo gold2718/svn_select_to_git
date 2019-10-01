@@ -1,6 +1,7 @@
-# CAM
-Community Atmosphere Model
+# CAM: The Community Atmosphere Model
 
-[CAM User's Guide](https://ncar.github.io/CAM/doc/build/html/index.html)
+CAM Documentation - https://ncar.github.io/CAM/doc/build/html/index.html
 
-[CAM Documentation wiki page](https://github.com/NCAR/CAM/wiki/Working-with-CAM-documentation-on-github-and-sphinx)
+CAM6 namelist settings - http://www.cesm.ucar.edu/models/cesm2/settings/current/cam_nml.html
+
+Please see the [wiki](https://github.com/ESCOMP/CAM/wiki) for information.
