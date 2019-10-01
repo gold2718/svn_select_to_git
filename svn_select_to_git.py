@@ -16,7 +16,9 @@ thisFile = os.path.realpath(inspect.getfile(inspect.currentframe()))
 currDir = os.path.dirname(thisFile)
 
 ## Boilerplate files
-cam_copy_files = [".config_files.xml", ".gitignore", "TGIT.sh"]
+cam_copy_files = [".config_files.xml", ".gitignore", 
+                  ("TGIT.sh", os.path.join("test", "system")),
+                  "README.md", "CODE_OF_CONDUCT.md"]
 
 ## Regular expression for source files
 cby_str="Committed by"
@@ -147,6 +149,10 @@ def file_sub_text(filename, patterns):
     if os.path.exists(bkup_name):
         os.remove(bkup_name)
     # End if
+    if not os.path.exists(filename):
+        # Sometimes, the file is removed in a version or not added until later
+        return
+
     mode = os.stat(filename).st_mode
     os.rename(filename, bkup_name)
     # Try the substitution, restore backup on error
@@ -1258,7 +1264,7 @@ def findParentCommit(gitLog, svnRev):
   # The log should be in inverse order so stop at first hit
   for log in gitLog:
     gnum = log.revNum()
-    if (gnum < rnum):
+    if (gnum <= rnum):
       commit = log.commit()
       break
     # End if
@@ -1469,13 +1475,13 @@ def processRevision(export_dir, git_dir, log, external, cam_move):
     # Add boilerplate files
     #--------------------------------------
     for file in cam_copy_files:
-        if file == "TGIT.sh":
-            src_path = os.path.join(currDir,file)
-            dst_path = os.path.join(git_dir, "test", "system", file)
+        if isinstance(file, tuple):
+            dst_path = os.path.join(git_dir, file[1], file[0])
+            file = file[0]
         else:
-            src_path = os.path.join(currDir, "cam{}".format(file))
             dst_path = os.path.join(git_dir, file)
 
+        src_path = os.path.join(currDir, "cam_boilerplate", file)
         needs_add = not os.path.exists(dst_path)
         if file_diff(src_path, dst_path):
             shutil.copy2(src_path, dst_path)
