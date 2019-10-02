@@ -15,10 +15,37 @@ import filecmp
 thisFile = os.path.realpath(inspect.getfile(inspect.currentframe()))
 currDir = os.path.dirname(thisFile)
 
+## Class for boilerplate files
+class Boilerplate(object):
+    def __init__(self, fname, path=None, dest=None, srcdir="cam_boilerplate"):
+        self._filename = fname
+        self._path = path
+        if dest:
+            self._dest = dest
+        else:
+            self._dest = fname
+        self._srcdir = srcdir
+
+    def source(self, root):
+        "Return the correct source path for this object"
+        return os.path.join(root, self._srcdir, self._filename)
+
+    def dest(self, root):
+        "Return the correct destination path for this object"
+        if self._path:
+            return os.path.join(root, self._path, self._dest)
+        else:
+            return os.path.join(root, self._dest)
+
 ## Boilerplate files
-cam_copy_files = [".config_files.xml", ".gitignore", 
-                  ("TGIT.sh", os.path.join("test", "system")),
-                  "README.md", "CODE_OF_CONDUCT.md"]
+cam_copy_files = [Boilerplate(".config_files.xml"),
+                  Boilerplate(".gitignore"),
+                  Boilerplate("CODE_OF_CONDUCT.md"),
+                  Boilerplate("TGIT.sh", path=os.path.join("test", "system"))]
+cam_copy_files_master = cam_copy_files[:]
+cam_copy_files_master.append(Boilerplate("README_master.md", dest="README.md"))
+cam_copy_files_branch = cam_copy_files[:]
+cam_copy_files_branch.append(Boilerplate("README.md"))
 
 ## Regular expression for source files
 cby_str="Committed by"
@@ -256,6 +283,11 @@ def cam_svn_to_git_mods(repo_dir):
                 '\n    if os.path.exists(testpath):'
                 '\n        srcroot = testpath\n'
                 r'    cmd = os.path.join(srcroot, "bld", "configure") + \\')}
+    file_sub_text(filename, patterns)
+    num_changes += 1
+    filename = os.path.join(cconfig, 'config_component.xml')
+    patterns = {'SRCROOT/components/cam' : 'COMP_ROOT_DIR_ATM',
+                'components/atm/cam' : 'components/cam'}
     file_sub_text(filename, patterns)
     num_changes += 1
     # config_files/definition.xml
@@ -1412,7 +1444,7 @@ def copySvn2Git(svnDir, gitDir):
   return num_copies
 # End def copySvn2Git
 
-def processRevision(export_dir, git_dir, log, external, cam_move):
+def processRevision(export_dir, git_dir, log, external, cam_move, copy_files):
     rnum = log.revision()
     tag = log.tag()
     num_changes = 0
@@ -1441,8 +1473,9 @@ def processRevision(export_dir, git_dir, log, external, cam_move):
     orphans1 = FindTreeOrphans(export_dir, git_dir)
     orphans2 = FindTreeOrphans(git_dir, export_dir)
     # Remove files no longer in repo
+    copy_filenames = [x.source(git_dir).lstrip(".").lstrip("/") for x in copy_files]
     for file in orphans2:
-        if file not in cam_copy_files:
+        if file not in copy_filenames:
             gitRmFile(git_dir, file)
             num_changes += 1
         # End if
@@ -1474,14 +1507,9 @@ def processRevision(export_dir, git_dir, log, external, cam_move):
     #--------------------------------------
     # Add boilerplate files
     #--------------------------------------
-    for file in cam_copy_files:
-        if isinstance(file, tuple):
-            dst_path = os.path.join(git_dir, file[1], file[0])
-            file = file[0]
-        else:
-            dst_path = os.path.join(git_dir, file)
-
-        src_path = os.path.join(currDir, "cam_boilerplate", file)
+    for file in copy_files:
+        dst_path = file.dest(git_dir)
+        src_path = file.source(currDir)
         needs_add = not os.path.exists(dst_path)
         if file_diff(src_path, dst_path):
             shutil.copy2(src_path, dst_path)
@@ -1928,8 +1956,8 @@ def _main_func():
     export_dir = os.path.abspath(export_dir)
     git_dir = os.path.abspath(git_dir)
 
-    #Script currently doesn't appear to work with Python version 3, so kill
-    #script with warning if python 3 or greater is being used:
+    # Script currently doesn't appear to work with Python version 3, so kill
+    # script with warning if python 3 or greater is being used:
     if sys.version_info[0] >= 3:
         perr("Script only works with Python 2. Please switch python versions.")
 
@@ -1958,6 +1986,10 @@ def _main_func():
     else:
         branch_name = branch_name[0]
     # End if
+    if branch_name == 'master':
+        copy_files = cam_copy_files_master
+    else:
+        copy_files = cam_copy_files_branch
 
     # Set the correct URL for the repo
     if (len(subdir) > 0):
@@ -2036,7 +2068,8 @@ def _main_func():
 
     # Process the sorted log revisions
     for log in logs:
-        processRevision(export_dir, git_dir, log, external, cam_move)
+        processRevision(export_dir, git_dir, log, external,
+                        cam_move, copy_files)
     # End for
 # End _main_func
 
