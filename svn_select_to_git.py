@@ -987,16 +987,22 @@ def tag_rev_search(rev, rev_next, tag_rev_list):
     #Ignore all tag revisions less than current revision:
     tag_abv_list = [rev for rev in tag_rev_ints if rev >= curr_rev_int]
 
-    #Find revision closest to current revision:
-    tag_rev_close = min(tag_abv_list, key=lambda x: x-curr_rev_int)
+    if tag_abv_list:
+        #Find revision closest to current revision:
+        tag_rev_close = min(tag_abv_list, key=lambda x: x-curr_rev_int)
 
-    #Determine if closest tag revision is in-between current revision and
-    #next trunk/branch revision:
-    if tag_rev_close < rev_next_int:
-        #If so, then find list index of tag:
-        rev_idx = tag_rev_ints.index(tag_rev_close)
+        #Determine if closest tag revision is in-between current revision and
+        #next trunk/branch revision:
+        if tag_rev_close < rev_next_int:
+            #If so, then find list index of tag:
+            rev_idx = tag_rev_ints.index(tag_rev_close)
+        else:
+            # If not, then set rev_idx to "-1"
+            # This indicates a tag doesn't exist for this revision:
+            rev_idx = -1
+        # End if
     else:
-        #If not, then set rev_idx to "-1", which indicates tag doesn't exist for this revision:
+        # There is no tag for this revision
         rev_idx = -1
 
     #return tag revision index:
