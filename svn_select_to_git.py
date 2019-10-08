@@ -1173,6 +1173,22 @@ def gitNewRepo(repo):
     return newrepo
 # End def gitNewRepo
 
+def gitCleanRepo(repo):
+    caller = "gitCleanRepo {}".format(repo)
+    currdir = os.getcwd()
+    os.chdir(repo)
+    status = checkOutput(["git", "status"])
+    cleanrepo = False
+    for line in status.splitlines():
+        if (line.rstrip(os.linesep) == "nothing to commit, working tree clean"):
+            cleanrepo = True
+            break
+        # End if
+    # End for
+    os.chdir(currdir)
+    return cleanrepo
+# End def gitCleanRepo
+
 def gitCheckout(checkoutDir, ref=None):
     caller = "gitCheckout {}".format(checkoutDir)
     currdir = os.getcwd()
@@ -1226,23 +1242,26 @@ def gitAddFile(repo, filename):
 
 def gitCommitAll(repo, message, author=None, date=None):
     caller = "gitCommitAll {}".format(repo)
-    currdir = os.getcwd()
-    os.chdir(repo)
-    gitcmd = ["git", "commit", "-a"]
-    if author is not None:
-        gitcmd.append("--author='{}'".format(author))
+    # Only try to commit if there are changes
+    if not gitCleanRepo(repo):
+        currdir = os.getcwd()
+        os.chdir(repo)
+        gitcmd = ["git", "commit", "-a"]
+        if author is not None:
+            gitcmd.append("--author='{}'".format(author))
+        # End if
+        if date is not None:
+            gitcmd.append("--date='{}'".format(date))
+        # End if
+        #Need to add quotes to message string, to
+        #avoid git error when "/" is present in the message:
+        full_message = "'"+message+"'"
+        gitcmd.append("--message={}".format(full_message))
 
-    if date is not None:
-        gitcmd.append("--date='{}'".format(date))
-
-    #Need to add quotes to message string, to
-    #avoid git error when "/" is present in the message:
-    full_message = "'"+message+"'"
-    gitcmd.append("--message={}".format(full_message))
-
-    retcode = retcall(gitcmd)
-    os.chdir(currdir)
-    quitOnFail(retcode, caller, gitcmd)
+        retcode = retcall(gitcmd)
+        os.chdir(currdir)
+        quitOnFail(retcode, caller, gitcmd)
+    # End if
 # End def gitCommitAll
 
 def gitApplyTag(repo, tag, message):
