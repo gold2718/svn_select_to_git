@@ -1973,7 +1973,13 @@ def _main_func():
         auth_table = None
 
     # Create a master list of revision ranges to process
-    if revisions is not None:
+    if revisions is None:
+        if branch_name:
+            perr("--rev argument is required if --branch argument is used")
+        else:
+            revStart = SvnRevRange("1:-1")
+        # End if
+    else:
         for revarg in revisions:
             rlist = revarg.split(",")
             for rev in rlist:
